@@ -1,9 +1,9 @@
 {
-  "name": "@gkt/microphone",
-  "version": "1.0.3",
+  "name": "wav-web-audio-recorder",
+  "version": "0.1.0",
   "description": "A JavaScript library for recording audio via the WebAudio API",
-  "main": "dist/Microphone.js",
-  "unpkg": "dist/Microphone.js",
+  "main": "dist/index.js",
+  "unpkg": "dist/index.js",
   "scripts": {
     "test": "jest",
     "build": "webpack --mode production",
@@ -13,9 +13,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/greenkeytech/microphone.git"
+    "url": "git+https://github.com/hmontazeri/microphone"
   },
-  "author": "GreenKey Technologies",
+  "author": "GreenKey Technologies, Hamed Montazeri",
   "license": "Apache-2.0",
   "devDependencies": {
     "@babel/core": "^7.5.5",

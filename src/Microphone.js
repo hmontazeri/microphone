@@ -1,4 +1,4 @@
-import {encodeWAV} from './encoders';
+import { encodeWAV } from "./encoders";
 
 const FILTER = [
   0.0006253,
@@ -41,7 +41,7 @@ const FILTER = [
   0.0004661,
   -0.0016085,
   -0.0009991,
-  0.0006253
+  0.0006253,
 ];
 
 // A class for recording data from the microphone and exporting it to WAV
@@ -80,13 +80,16 @@ class Microphone {
   //   navigator.mediaDevices.getUserMedia({audio: true}).then((stream) => {
   //     const mic = new Microphone(stream, { exportSampleRate: 8000, mono: false});
   //   });
-  constructor(stream, {
-    bufferSize = 4096,
-    exportSampleRate = 16000,
-    mono = true,
-    streaming = true,
-    audioContext = window.AudioContext || window.webkitAudioContext
-  } = {}) {
+  constructor(
+    stream,
+    {
+      bufferSize = 4096,
+      exportSampleRate = 44100,
+      mono = true,
+      streaming = false,
+      audioContext = window.AudioContext || window.webkitAudioContext,
+    } = {}
+  ) {
     this.stream = stream;
     this.bufferSize = bufferSize;
     this.exportSampleRate = exportSampleRate;
@@ -94,7 +97,7 @@ class Microphone {
     this.streaming = streaming;
 
     try {
-      this.context = new audioContext({sampleRate: exportSampleRate});
+      this.context = new audioContext({ sampleRate: exportSampleRate });
       this.source = this.context.createMediaStreamSource(this.stream);
     } catch {
       this.context = new audioContext();
@@ -110,7 +113,11 @@ class Microphone {
   // Returns the receiver.
   start() {
     const numChannels = this.mono ? 1 : 2;
-    this.node = this.context.createScriptProcessor(this.bufferSize, numChannels, numChannels);
+    this.node = this.context.createScriptProcessor(
+      this.bufferSize,
+      numChannels,
+      numChannels
+    );
     this.source.connect(this.node);
     this.node.connect(this.context.destination);
 
@@ -145,7 +152,7 @@ class Microphone {
   // Returns a Blob of type audio/wav.
   export() {
     if (this.c0Bufs.length === 0) {
-      return new Blob([], {type: 'audio/wav'});
+      return new Blob([], { type: "audio/wav" });
     }
 
     const c0 = flatten(this.c0Bufs);
@@ -155,7 +162,11 @@ class Microphone {
     let rate, samples;
     if (this.mono) {
       if (this.downsample) {
-        const result = downsample(c0, this.context.sampleRate, this.exportSampleRate);
+        const result = downsample(
+          c0,
+          this.context.sampleRate,
+          this.exportSampleRate
+        );
         rate = result.rate;
         samples = result.samples;
       } else {
@@ -164,8 +175,16 @@ class Microphone {
       }
     } else {
       if (this.downsample) {
-        const c0Result = (downsample(flatten(this.c0Bufs), this.context.sampleRate, this.exportSampleRate));
-        const c1Result = (downsample(flatten(this.c1Bufs), this.context.sampleRate, this.exportSampleRate));
+        const c0Result = downsample(
+          flatten(this.c0Bufs),
+          this.context.sampleRate,
+          this.exportSampleRate
+        );
+        const c1Result = downsample(
+          flatten(this.c1Bufs),
+          this.context.sampleRate,
+          this.exportSampleRate
+        );
         rate = c0Result.rate;
         samples = interleave(c0Result.samples, c1Result.samples);
       } else {
@@ -202,9 +221,13 @@ class Microphone {
 //
 // Returns a new Float32Array with the contents from all of the given buffers.
 export function flatten(buffers) {
-  const buf = new Float32Array(buffers.reduce(((sum, b) => sum + b.length), 0));
+  const buf = new Float32Array(buffers.reduce((sum, b) => sum + b.length, 0));
 
-  for (let offset = 0, i = 0; i < buffers.length; offset += buffers[i].length, i++) {
+  for (
+    let offset = 0, i = 0;
+    i < buffers.length;
+    offset += buffers[i].length, i++
+  ) {
     buf.set(buffers[i], offset);
   }
 
@@ -233,7 +256,7 @@ export function interleave(a, b) {
 // whole number downsampling factor.
 //
 // originalSamples - A Float32Array.
-// originalRate    - A Number indicating the rate at which the given samples 
+// originalRate    - A Number indicating the rate at which the given samples
 //                   were recorded at.
 // desiredRate     - A Number indicating the desired rate to downsample to.
 //
@@ -243,7 +266,7 @@ export function interleave(a, b) {
 //   samples - A Float32Array containing the downsampled values.
 export function downsample(originalSamples, originalRate, desiredRate) {
   if (desiredRate > originalRate) {
-    throw new Error('desired rate must be less than original rate');
+    throw new Error("desired rate must be less than original rate");
   }
 
   const filtered = lowpassFilter(originalSamples);
@@ -254,7 +277,7 @@ export function downsample(originalSamples, originalRate, desiredRate) {
     samples[i] = filtered[j];
   }
 
-  return {rate: originalRate / factor, samples};
+  return { rate: originalRate / factor, samples };
 }
 
 function lowpassFilter(samples) {
@@ -265,7 +288,7 @@ function lowpassFilter(samples) {
   // is symmetric. If the filter becomes non symettric this code will need to be adjusted.
   for (let i = 0; i < length; i++) {
     for (let j = 0; j < FILTER.length; j++) {
-      buf[i] += samples[i+j] * FILTER[j];
+      buf[i] += samples[i + j] * FILTER[j];
     }
   }
 

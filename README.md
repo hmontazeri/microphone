@@ -1,29 +1,42 @@
-# @gkt/microphone
+# wav-web-audio-recorder
+
+## This is a fork of `@gkt/microphone` with different default configs
+
+```
+default: Sample Rate 44100
+default: Streaming = false
+```
 
 `@gkt/microphone` is a JavaScript library for recording audio via the WebAudio API.
 
 ## Installation
 
 ```
-$ npm install @gkt/microphone
+$ yarn add wav-web-audio-recorder
+```
+
+or
+
+```
+$ npm install wav-web-audio-recorder
 ```
 
 ## Usage
 
 ```javascript
-import Microphone from '@gkt/microphone';
+import Recorder from "wav-web-audio-recorder";
 
-navigator.mediaDevices.getUserMedia({audio: true}).then((stream) => {
-  const mic = new Microphone(stream);
+navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+  const recorder = new Recorder(stream);
 
   // start recording audio from the microphone
-  mic.start();
+  recorder.start();
 
   // periodically export a Blob containing WAV data of the audio recorded since the last export
-  const blob = mic.export();
+  const blob = recorder.export();
 
   // stop recording audio
-  mic.stop();
+  recorder.stop();
 });
 ```
 
