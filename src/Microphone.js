@@ -112,106 +112,123 @@ class Microphone {
   //
   // Returns the receiver.
   start() {
-    const numChannels = this.mono ? 1 : 2;
-    this.node = this.context.createScriptProcessor(
-      this.bufferSize,
-      numChannels,
-      numChannels
-    );
-    this.source.connect(this.node);
-    this.node.connect(this.context.destination);
+    return new Promise((resolve, reject) => {
+      try {
+        const numChannels = this.mono ? 1 : 2;
+        this.node = this.context.createScriptProcessor(
+          this.bufferSize,
+          numChannels,
+          numChannels
+        );
+        this.source.connect(this.node);
+        this.node.connect(this.context.destination);
 
-    this.node.onaudioprocess = (e) => {
-      this.c0Bufs.push(e.inputBuffer.getChannelData(0).slice());
+        this.node.onaudioprocess = (e) => {
+          this.c0Bufs.push(e.inputBuffer.getChannelData(0).slice());
 
-      if (!this.mono) {
-        this.c1Bufs.push(e.inputBuffer.getChannelData(1).slice());
+          if (!this.mono) {
+            this.c1Bufs.push(e.inputBuffer.getChannelData(1).slice());
+          }
+        };
+
+        this.c0Bufs = [];
+        this.c1Bufs = [];
+        this.exportedHeader = false;
+
+        resolve(this);
+      } catch (error) {
+        reject(error);
       }
-    };
-
-    this.c0Bufs = [];
-    this.c1Bufs = [];
-    this.exportedHeader = false;
-
-    return this;
+    });
   }
 
   // Stop recording audio.
   //
   // Returns the receiver.
   stop() {
-    this.node.onaudioprocess = null;
-    this.node.disconnect();
-    this.node = null;
-
-    return this;
+    return new Promise((resolve, reject) => {
+      try {
+        this.node.onaudioprocess = null;
+        this.node.disconnect();
+        this.node = null;
+        resolve(this);
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   // Exports the currently buffered audio data to WAV format.
   //
   // Returns a Blob of type audio/wav.
   export() {
-    if (this.c0Bufs.length === 0) {
-      return new Blob([], { type: "audio/wav" });
-    }
-
-    const c0 = flatten(this.c0Bufs);
-    const c1 = flatten(this.c1Bufs);
-
-    // combine sample buffers
-    let rate, samples;
-    if (this.mono) {
-      if (this.downsample) {
-        const result = downsample(
-          c0,
-          this.context.sampleRate,
-          this.exportSampleRate
-        );
-        rate = result.rate;
-        samples = result.samples;
-      } else {
-        rate = this.context.sampleRate;
-        samples = c0;
+    return new Promise((resolve, reject) => {
+      if (this.c0Bufs.length === 0) {
+        return new Blob([], { type: "audio/wav" });
       }
-    } else {
-      if (this.downsample) {
-        const c0Result = downsample(
-          flatten(this.c0Bufs),
-          this.context.sampleRate,
-          this.exportSampleRate
-        );
-        const c1Result = downsample(
-          flatten(this.c1Bufs),
-          this.context.sampleRate,
-          this.exportSampleRate
-        );
-        rate = c0Result.rate;
-        samples = interleave(c0Result.samples, c1Result.samples);
+
+      const c0 = flatten(this.c0Bufs);
+      const c1 = flatten(this.c1Bufs);
+
+      // combine sample buffers
+      let rate, samples;
+      if (this.mono) {
+        if (this.downsample) {
+          const result = downsample(
+            c0,
+            this.context.sampleRate,
+            this.exportSampleRate
+          );
+          rate = result.rate;
+          samples = result.samples;
+        } else {
+          rate = this.context.sampleRate;
+          samples = c0;
+        }
       } else {
-        rate = this.context.sampleRate;
-        samples = interleave(c0, c1);
+        if (this.downsample) {
+          const c0Result = downsample(
+            flatten(this.c0Bufs),
+            this.context.sampleRate,
+            this.exportSampleRate
+          );
+          const c1Result = downsample(
+            flatten(this.c1Bufs),
+            this.context.sampleRate,
+            this.exportSampleRate
+          );
+          rate = c0Result.rate;
+          samples = interleave(c0Result.samples, c1Result.samples);
+        } else {
+          rate = this.context.sampleRate;
+          samples = interleave(c0, c1);
+        }
       }
-    }
 
-    // clear the buffers
-    if (this.downsample) {
-      // if we're downsampling, we need to leave the last chunk of samples so that they can be
-      // used for filtering on the next export. Output will have clicking sounds without this
-      this.c0Bufs = [c0.slice(c0.length - FILTER.length)];
-      this.c1Bufs = [c1.slice(c1.length - FILTER.length)];
-    } else {
-      this.c0Bufs = [];
-      this.c1Bufs = [];
-    }
-
-    const blob = encodeWAV(samples, {
-      sampleRate: rate,
-      mono: this.mono,
-      streaming: this.streaming,
-      addHeader: this.streaming ? !this.exportedHeader : true,
+      // clear the buffers
+      if (this.downsample) {
+        // if we're downsampling, we need to leave the last chunk of samples so that they can be
+        // used for filtering on the next export. Output will have clicking sounds without this
+        this.c0Bufs = [c0.slice(c0.length - FILTER.length)];
+        this.c1Bufs = [c1.slice(c1.length - FILTER.length)];
+      } else {
+        this.c0Bufs = [];
+        this.c1Bufs = [];
+      }
+      // return blob or error as promise
+      try {
+        const blob = encodeWAV(samples, {
+          sampleRate: rate,
+          mono: this.mono,
+          streaming: this.streaming,
+          addHeader: this.streaming ? !this.exportedHeader : true,
+        });
+        this.exportedHeader = true;
+        resolve(blob);
+      } catch (error) {
+        reject(error);
+      }
     });
-    this.exportedHeader = true;
-    return blob;
   }
 }
 

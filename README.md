@@ -1,6 +1,6 @@
 # wav-web-audio-recorder
 
-## This is a fork of `@gkt/microphone` with different default configs
+## This is a fork of `@gkt/microphone` with different default configs and promises as returns
 
 ```
 default: Sample Rate 44100
@@ -30,13 +30,34 @@ navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
   const recorder = new Recorder(stream);
 
   // start recording audio from the microphone
-  recorder.start();
+  recorder
+    .start()
+    .then(() => {
+      //do something
+    })
+    .catch((error) => {
+      //do something
+    });
 
   // periodically export a Blob containing WAV data of the audio recorded since the last export
-  const blob = recorder.export();
+  recorder
+    .export()
+    .then((blob) => {
+      // do something
+    })
+    .catch((error) => {
+      // do something
+    });
 
   // stop recording audio
-  recorder.stop();
+  recorder
+    .stop()
+    .then(() => {
+      //do something
+    })
+    .catch((error) => {
+      //do something
+    });
 });
 ```
 
