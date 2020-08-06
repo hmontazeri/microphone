@@ -1,6 +1,6 @@
 {
   "name": "wav-web-audio-recorder",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "A JavaScript library for recording audio via the WebAudio API",
   "main": "dist/index.js",
   "unpkg": "dist/index.js",
@@ -9,7 +9,7 @@
     "test": "jest",
     "build": "webpack --mode production",
     "version": "node -pe \"require('./package.json').version\"",
-    "prepublish": "npm run test && npm run build",
+    "prepublish": "npm run preinstall && npm run test && npm run build",
     "postpublish": "git tag v$(npm --loglevel silent run version) && git push --tags"
   },
   "repository": {
