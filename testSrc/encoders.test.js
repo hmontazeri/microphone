@@ -1,18 +1,22 @@
-import {encodeWAV} from './encoders';
+import { encodeWAV } from "../src/encoders";
 
 function blob2buf(blob) {
   return new Promise((resolve) => {
     const reader = new FileReader();
-    reader.addEventListener('loadend', (event) => {
-      resolve(event.target.result);
-    }, false);
+    reader.addEventListener(
+      "loadend",
+      (event) => {
+        resolve(event.target.result);
+      },
+      false
+    );
     reader.readAsArrayBuffer(blob);
   });
 }
 
-describe('encodeWAV', () => {
-  describe('with defaults', () => {
-    it('writes a header with 1 channel and 16kHz sample rate', async () => {
+describe("encodeWAV", () => {
+  describe("with defaults", () => {
+    it("writes a header with 1 channel and 16kHz sample rate", async () => {
       const samples = new Float32Array(100);
       const wav = encodeWAV(samples);
       const buf = await blob2buf(wav);
@@ -21,25 +25,25 @@ describe('encodeWAV', () => {
       expect(view.byteLength).toBe(244);
 
       // ChunkID
-      expect(view.getUint8(0)).toBe('R'.charCodeAt(0));
-      expect(view.getUint8(1)).toBe('I'.charCodeAt(0));
-      expect(view.getUint8(2)).toBe('F'.charCodeAt(0));
-      expect(view.getUint8(3)).toBe('F'.charCodeAt(0));
+      expect(view.getUint8(0)).toBe("R".charCodeAt(0));
+      expect(view.getUint8(1)).toBe("I".charCodeAt(0));
+      expect(view.getUint8(2)).toBe("F".charCodeAt(0));
+      expect(view.getUint8(3)).toBe("F".charCodeAt(0));
 
       // ChunkSize
       expect(view.getUint32(4, true)).toBe(232);
 
       // Format
-      expect(view.getUint8(8)).toBe('W'.charCodeAt(0));
-      expect(view.getUint8(9)).toBe('A'.charCodeAt(0));
-      expect(view.getUint8(10)).toBe('V'.charCodeAt(0));
-      expect(view.getUint8(11)).toBe('E'.charCodeAt(0));
+      expect(view.getUint8(8)).toBe("W".charCodeAt(0));
+      expect(view.getUint8(9)).toBe("A".charCodeAt(0));
+      expect(view.getUint8(10)).toBe("V".charCodeAt(0));
+      expect(view.getUint8(11)).toBe("E".charCodeAt(0));
 
       // Subchunk1ID
-      expect(view.getUint8(12)).toBe('f'.charCodeAt(0));
-      expect(view.getUint8(13)).toBe('m'.charCodeAt(0));
-      expect(view.getUint8(14)).toBe('t'.charCodeAt(0));
-      expect(view.getUint8(15)).toBe(' '.charCodeAt(0));
+      expect(view.getUint8(12)).toBe("f".charCodeAt(0));
+      expect(view.getUint8(13)).toBe("m".charCodeAt(0));
+      expect(view.getUint8(14)).toBe("t".charCodeAt(0));
+      expect(view.getUint8(15)).toBe(" ".charCodeAt(0));
 
       // Subchunk1Size
       expect(view.getUint32(16, true)).toBe(16);
@@ -63,16 +67,16 @@ describe('encodeWAV', () => {
       expect(view.getUint16(34, true)).toBe(16);
 
       // Subchunk2ID
-      expect(view.getUint8(36)).toBe('d'.charCodeAt(0));
-      expect(view.getUint8(37)).toBe('a'.charCodeAt(0));
-      expect(view.getUint8(38)).toBe('t'.charCodeAt(0));
-      expect(view.getUint8(39)).toBe('a'.charCodeAt(0));
+      expect(view.getUint8(36)).toBe("d".charCodeAt(0));
+      expect(view.getUint8(37)).toBe("a".charCodeAt(0));
+      expect(view.getUint8(38)).toBe("t".charCodeAt(0));
+      expect(view.getUint8(39)).toBe("a".charCodeAt(0));
 
       // Subchunk2Size
       expect(view.getUint32(40, true)).toBe(200);
     });
 
-    it('writes the input data to PCM format', async () => {
+    it("writes the input data to PCM format", async () => {
       const samples = new Float32Array([-1.5, -0.5, 0, 0.8, 1.2]);
       const wav = encodeWAV(samples);
       const buf = await blob2buf(wav);
@@ -85,20 +89,20 @@ describe('encodeWAV', () => {
     });
   });
 
-  describe('with addHeader false', () => {
-    it('does not write a header', async () => {
+  describe("with addHeader false", () => {
+    it("does not write a header", async () => {
       const samples = new Float32Array(100);
-      const wav = encodeWAV(samples, {addHeader: false});
+      const wav = encodeWAV(samples, { addHeader: false });
       const buf = await blob2buf(wav);
       const view = new DataView(buf);
       expect(view.byteLength).toBe(200);
     });
   });
 
-  describe('with streaming true', () => {
-    it('sets the chunk size fields to 0xffffffff', async () => {
+  describe("with streaming true", () => {
+    it("sets the chunk size fields to 0xffffffff", async () => {
       const samples = new Float32Array(100);
-      const wav = encodeWAV(samples, {streaming: true});
+      const wav = encodeWAV(samples, { streaming: true });
       const buf = await blob2buf(wav);
       const view = new DataView(buf);
 
@@ -110,10 +114,10 @@ describe('encodeWAV', () => {
     });
   });
 
-  describe('with another sampleRate', () => {
-    it('sets the correct sample rate and byte rate', async () => {
+  describe("with another sampleRate", () => {
+    it("sets the correct sample rate and byte rate", async () => {
       const samples = new Float32Array(100);
-      const wav = encodeWAV(samples, {sampleRate: 8000});
+      const wav = encodeWAV(samples, { sampleRate: 8000 });
       const buf = await blob2buf(wav);
       const view = new DataView(buf);
 
@@ -125,10 +129,10 @@ describe('encodeWAV', () => {
     });
   });
 
-  describe('with mono false', () => {
-    it('sets the correct number of channels, byte rate, and block align', async () => {
+  describe("with mono false", () => {
+    it("sets the correct number of channels, byte rate, and block align", async () => {
       const samples = new Float32Array(100);
-      const wav = encodeWAV(samples, {mono: false});
+      const wav = encodeWAV(samples, { mono: false });
       const buf = await blob2buf(wav);
       const view = new DataView(buf);
 

@@ -1,4 +1,4 @@
-import { flatten, interleave, downsample } from "./Microphone.js";
+import { flatten, interleave, downsample } from "../src/Microphone.js";
 
 describe("flatten", () => {
   it("flattens the given array of buffers", () => {

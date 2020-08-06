@@ -9,7 +9,7 @@
     "test": "jest",
     "build": "webpack --mode production",
     "version": "node -pe \"require('./package.json').version\"",
-    "prepublish": "npm run preinstall && npm run test && npm run build",
+    "prepublish": "npm run version && npm run preinstall && npm run test && npm run build",
     "postpublish": "git tag v$(npm --loglevel silent run version) && git push --tags"
   },
   "repository": {
