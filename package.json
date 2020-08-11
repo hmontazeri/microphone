@@ -1,11 +1,12 @@
 {
   "name": "wav-web-audio-recorder",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A JavaScript library for recording audio via the WebAudio API",
   "main": "./dist/index.js",
   "unpkg": "./dist/index.js",
   "scripts": {
-    "preinstall": "rm -rf dist/",
+    "clean": "rm -rf dist/",
+    "preinstall": "npm run clean",
     "test": "jest",
     "build": "webpack --mode production",
     "version": "node -pe \"require('./package.json').version\"",
@@ -31,9 +32,7 @@
     "webpack": "^4.41.3",
     "webpack-cli": "^3.3.10"
   },
-  "dependencies": {
-    "core-js": "^3.2.1"
-  },
+  "dependencies": {},
   "jest": {
     "transform": {
       "^.+\\.js$": "babel-jest"

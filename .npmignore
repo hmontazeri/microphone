@@ -4,3 +4,4 @@ testSrc
 webpack.config.js
 .gitignore
 yarn.lock
+.babelrc 
