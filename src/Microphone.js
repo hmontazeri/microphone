@@ -1,49 +1,5 @@
 import { encodeWAV } from "./encoders";
 
-const FILTER = [
-  0.0006253,
-  -0.0009991,
-  -0.0016085,
-  0.0004661,
-  0.0033264,
-  0.0017113,
-  -0.0047963,
-  -0.0066555,
-  0.0033279,
-  0.0135469,
-  0.0043632,
-  -0.0185222,
-  -0.0201074,
-  0.0147855,
-  0.0424725,
-  0.0070493,
-  -0.0664233,
-  -0.0653794,
-  0.0849329,
-  0.3036509,
-  0.4084668,
-  0.3036509,
-  0.0849329,
-  -0.0653794,
-  -0.0664233,
-  0.0070493,
-  0.0424725,
-  0.0147855,
-  -0.0201074,
-  -0.0185222,
-  0.0043632,
-  0.0135469,
-  0.0033279,
-  -0.0066555,
-  -0.0047963,
-  0.0017113,
-  0.0033264,
-  0.0004661,
-  -0.0016085,
-  -0.0009991,
-  0.0006253,
-];
-
 // A class for recording data from the microphone and exporting it to WAV
 // format.
 class Microphone {
@@ -80,31 +36,15 @@ class Microphone {
   //   navigator.mediaDevices.getUserMedia({audio: true}).then((stream) => {
   //     const mic = new Microphone(stream, { exportSampleRate: 8000, mono: false});
   //   });
-  constructor(
-    stream,
-    {
-      bufferSize = 4096,
-      exportSampleRate = 44100,
-      mono = true,
-      streaming = false,
-      audioContext = window.AudioContext || window.webkitAudioContext,
-    } = {}
-  ) {
+  constructor(stream, { audioContext = window.AudioContext } = {}) {
     this.stream = stream;
-    this.bufferSize = bufferSize;
-    this.exportSampleRate = exportSampleRate;
-    this.mono = mono;
-    this.streaming = streaming;
-
-    try {
-      this.context = new audioContext({ sampleRate: exportSampleRate });
-      this.source = this.context.createMediaStreamSource(this.stream);
-    } catch {
-      this.context = new audioContext();
-      this.source = this.context.createMediaStreamSource(this.stream);
-    }
-
-    this.downsample = this.context.sampleRate > this.exportSampleRate;
+    this.bufferSize = 4096;
+    this.mono = true;
+    this.streaming = false;
+    this.context = new audioContext();
+    this.source = this.context.createMediaStreamSource(this.stream);
+    this.downsample = false;
+    // this.downsample = this.context.sampleRate > this.exportSampleRate;
   }
 
   // Start recording audio. This will begin buffering audio data from the
@@ -114,7 +54,7 @@ class Microphone {
   start() {
     return new Promise((resolve, reject) => {
       try {
-        const numChannels = this.mono ? 1 : 2;
+        const numChannels = 1;
         this.node = this.context.createScriptProcessor(
           this.bufferSize,
           numChannels,
@@ -122,18 +62,11 @@ class Microphone {
         );
         this.source.connect(this.node);
         this.node.connect(this.context.destination);
+        this.c0Bufs = [];
 
         this.node.onaudioprocess = (e) => {
           this.c0Bufs.push(e.inputBuffer.getChannelData(0).slice());
-
-          if (!this.mono) {
-            this.c1Bufs.push(e.inputBuffer.getChannelData(1).slice());
-          }
         };
-
-        this.c0Bufs = [];
-        this.c1Bufs = [];
-        this.exportedHeader = false;
 
         resolve(this);
       } catch (error) {
@@ -163,67 +96,25 @@ class Microphone {
   // Returns a Blob of type audio/wav.
   export() {
     return new Promise((resolve, reject) => {
+      // empty blob if no buffers
       if (this.c0Bufs.length === 0) {
         return new Blob([], { type: "audio/wav" });
       }
-
-      const c0 = flatten(this.c0Bufs);
-      const c1 = flatten(this.c1Bufs);
-
       // combine sample buffers
       let rate, samples;
-      if (this.mono) {
-        if (this.downsample) {
-          const result = downsample(
-            c0,
-            this.context.sampleRate,
-            this.exportSampleRate
-          );
-          rate = result.rate;
-          samples = result.samples;
-        } else {
-          rate = this.context.sampleRate;
-          samples = c0;
-        }
-      } else {
-        if (this.downsample) {
-          const c0Result = downsample(
-            flatten(this.c0Bufs),
-            this.context.sampleRate,
-            this.exportSampleRate
-          );
-          const c1Result = downsample(
-            flatten(this.c1Bufs),
-            this.context.sampleRate,
-            this.exportSampleRate
-          );
-          rate = c0Result.rate;
-          samples = interleave(c0Result.samples, c1Result.samples);
-        } else {
-          rate = this.context.sampleRate;
-          samples = interleave(c0, c1);
-        }
-      }
+      const c0 = flatten(this.c0Bufs);
+      rate = this.context.sampleRate;
+      samples = c0;
+      this.c0Bufs = [];
+      this.c1Bufs = [];
 
-      // clear the buffers
-      if (this.downsample) {
-        // if we're downsampling, we need to leave the last chunk of samples so that they can be
-        // used for filtering on the next export. Output will have clicking sounds without this
-        this.c0Bufs = [c0.slice(c0.length - FILTER.length)];
-        this.c1Bufs = [c1.slice(c1.length - FILTER.length)];
-      } else {
-        this.c0Bufs = [];
-        this.c1Bufs = [];
-      }
-      // return blob or error as promise
       try {
         const blob = encodeWAV(samples, {
           sampleRate: rate,
           mono: this.mono,
-          streaming: this.streaming,
-          addHeader: this.streaming ? !this.exportedHeader : true,
+          streaming: false,
+          addHeader: true,
         });
-        this.exportedHeader = true;
         resolve(blob);
       } catch (error) {
         reject(error);
@@ -257,16 +148,16 @@ export function flatten(buffers) {
 // b - A Float32Array
 //
 // Returns a Float32Array.
-export function interleave(a, b) {
-  const buf = new Float32Array(a.length * 2);
+// export function interleave(a, b) {
+//   const buf = new Float32Array(a.length * 2);
 
-  for (let i = 0; i < a.length; i++) {
-    buf[i * 2] = a[i];
-    buf[i * 2 + 1] = b[i];
-  }
+//   for (let i = 0; i < a.length; i++) {
+//     buf[i * 2] = a[i];
+//     buf[i * 2 + 1] = b[i];
+//   }
 
-  return buf;
-}
+//   return buf;
+// }
 
 // Downsamples the given samples buffer from the given original rate to a rate
 // as close to the desired rate as you can get without going under by using a
@@ -281,35 +172,35 @@ export function interleave(a, b) {
 //   rate    - A Number indicating the actual rate the original samples were
 //             downsampled to.
 //   samples - A Float32Array containing the downsampled values.
-export function downsample(originalSamples, originalRate, desiredRate) {
-  if (desiredRate > originalRate) {
-    throw new Error("desired rate must be less than original rate");
-  }
+// export function downsample(originalSamples, originalRate, desiredRate) {
+//   if (desiredRate > originalRate) {
+//     throw new Error("desired rate must be less than original rate");
+//   }
 
-  const filtered = lowpassFilter(originalSamples);
-  const factor = Math.floor(originalRate / desiredRate);
-  const samples = new Float32Array(Math.round(filtered.length / factor));
+//   const filtered = lowpassFilter(originalSamples);
+//   const factor = Math.floor(originalRate / desiredRate);
+//   const samples = new Float32Array(Math.round(filtered.length / factor));
 
-  for (let i = 0, j = 0; i < samples.length; i++, j += factor) {
-    samples[i] = filtered[j];
-  }
+//   for (let i = 0, j = 0; i < samples.length; i++, j += factor) {
+//     samples[i] = filtered[j];
+//   }
 
-  return { rate: originalRate / factor, samples };
-}
+//   return { rate: originalRate / factor, samples };
+// }
 
-function lowpassFilter(samples) {
-  const length = Math.max(0, samples.length - FILTER.length + 1);
-  const buf = new Float32Array(length);
+// function lowpassFilter(samples) {
+//   const length = Math.max(0, samples.length - FILTER.length + 1);
+//   const buf = new Float32Array(length);
 
-  // convolve the lowpass FIR filter with the signal. We don't reverse the signal because the filter
-  // is symmetric. If the filter becomes non symettric this code will need to be adjusted.
-  for (let i = 0; i < length; i++) {
-    for (let j = 0; j < FILTER.length; j++) {
-      buf[i] += samples[i + j] * FILTER[j];
-    }
-  }
+//   // convolve the lowpass FIR filter with the signal. We don't reverse the signal because the filter
+//   // is symmetric. If the filter becomes non symettric this code will need to be adjusted.
+//   for (let i = 0; i < length; i++) {
+//     for (let j = 0; j < FILTER.length; j++) {
+//       buf[i] += samples[i + j] * FILTER[j];
+//     }
+//   }
 
-  return buf;
-}
+//   return buf;
+// }
 
 export default Microphone;

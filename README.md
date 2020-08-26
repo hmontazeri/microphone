@@ -3,8 +3,7 @@
 ## This is a fork of `@gkt/microphone` with different default configs and promises as returns
 
 ```
-default: Sample Rate 44100
-default: Streaming = false
+only records in mono and does not downsample.
 ```
 
 `@gkt/microphone` is a JavaScript library for recording audio via the WebAudio API.

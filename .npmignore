@@ -1,7 +1,3 @@
-node_modules
 src
 testSrc
-webpack.config.js
 .gitignore
-yarn.lock
-.babelrc 
